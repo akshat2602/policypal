@@ -1,51 +1,54 @@
+"use client";
+
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import { FileSelector } from "@/components/file-selector";
+import { ChatInterface } from "@/components/chat-interface";
+import { ProfileMenu } from "@/components/profile-menu";
+import { Button } from "@/components/ui/button";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import "./App.css";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+export default function Home() {
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
-  return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
-  );
+    return (
+        <div className="flex h-screen bg-gray-100">
+            <Collapsible
+                open={isSidebarOpen}
+                onOpenChange={setIsSidebarOpen}
+                className="relative"
+            >
+                <CollapsibleContent className="w-80 bg-white p-6 border-r h-full overflow-auto">
+                    <h1 className="text-2xl font-bold mb-6">
+                        Insurance Assistant
+                    </h1>
+                    <FileSelector />
+                </CollapsibleContent>
+                <CollapsibleTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-4 -right-4 z-10 rounded-full bg-white border shadow-md"
+                    >
+                        {isSidebarOpen ? (
+                            <ChevronLeft className="h-4 w-4" />
+                        ) : (
+                            <ChevronRight className="h-4 w-4" />
+                        )}
+                    </Button>
+                </CollapsibleTrigger>
+            </Collapsible>
+            <main className="flex-1 flex flex-col">
+                <header className="bg-white border-b p-4 flex justify-end">
+                    <ProfileMenu />
+                </header>
+                <ChatInterface />
+            </main>
+        </div>
+    );
 }
-
-export default App;
