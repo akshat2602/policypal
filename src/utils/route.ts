@@ -1,6 +1,6 @@
 import { LMStudioClient, FileHandle } from "@lmstudio/sdk";
 import { invoke } from "@tauri-apps/api/core";
-
+import { Buffer } from "buffer";
 
 export async function EMBED_FILES(
     documentPaths: string[]
@@ -19,7 +19,7 @@ export async function EMBED_FILES(
             });
             console.log("reading file content", content);
             // Convert content to buffer
-            const documentBuffer = new TextEncoder().encode(content);
+            const documentBuffer = Buffer.from(content);
             console.log("created buffer", documentBuffer);
             // Upload the document as a temp file
             const documentHandle = await client.files.uploadTempFile(
@@ -50,24 +50,34 @@ export async function POST(
 
     // Retrieve relevant content
     let results;
-
+    console.log(documentHandles);
     results = await client.retrieval.retrieve(question, documentHandles, {
         embeddingModel: nomic,
     });
 
     // Construct the prompt
     const prompt = `\
-Answer the user's query with the following citation:
+You are assisting patients in evaluating their insurance claims with empathy and precision. You have access to detailed documents such as the user's insurance card, confirmation of coverage, a network directory, an insurance summary flyer, and a markdown file detailing the denial. 
+Your primary goals are: 1) to assess whether a denied insurance claim is justified based on the documents provided, and if not, draft a denial appeal mail for the user to send; and 2) check processed claims for any pending patient balances, verify their accuracy, and inform the user of any discrepancies. Always approach interactions with clarity, understanding, and a focus on user support. 
+Double-check all factual details from the documents provided before forming conclusions, and explain findings in simple, compassionate terms to ensure the user feels supported and confident in next steps.
 
------ Citation -----
-${results.entries[0].content}
------ End of Citation -----
+----- Citation Starts -----
+${results.entries
+    .slice(0, 3)
+    .map((entry) => entry.content)
+    .join("\\n")}
+----- Citation Ends -----
 
-User's question is ${question}, be assurative in your answer annd give specific answer`;
-
+User's question is: "${question}". Be assurative in your answer annd give specific answer
+`;
+    console.log("prompt", prompt);
     // Load LLM model
     const llama = await client.llm.getOrLoad("llama-3.2-3b-qnn");
-    const prediction = llama.respond([{ role: "user", content: prompt }]);
+    const prediction = llama.respond([{ role: "user", content: prompt }], {
+        contextOverflowPolicy: "stopAtLimit",
+        maxPredictedTokens: 1500,
+        temperature: 0.3,
+    });
 
     let answer = "";
     for await (const { content } of prediction) {
