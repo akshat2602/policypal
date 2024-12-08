@@ -7,10 +7,26 @@
   ],
   "permissions": [
     "core:default",
-    "shell:allow-open",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "exec-sh",
+          "cmd": "sh",
+          "args": [
+            "-c",
+            {
+              "validator": "\\S+"
+            }
+          ],
+          "sidecar": false
+        }
+      ]
+    },
     "fs:default",
     "fs:default",
     "dialog:default",
-    "dialog:default"
+    "dialog:default",
+    "shell:default"
   ]
 }

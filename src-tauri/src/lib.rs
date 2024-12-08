@@ -1,6 +1,55 @@
+use pdf_extract::extract_text;
+use pulldown_cmark::{html, Options, Parser};
 use serde::Serialize;
 use std::fs;
 use std::path::PathBuf;
+use tauri::command;
+
+#[command]
+async fn read_file_content(path: String) -> Result<String, String> {
+    // Convert to PathBuf and get the absolute path
+    let path_buf = PathBuf::from(&path);
+    let absolute_path = match path_buf.canonicalize() {
+        Ok(abs_path) => abs_path,
+        Err(e) => return Err(format!("Failed to get absolute path: {}", e)),
+    };
+
+    println!(
+        "Attempting to read file at absolute path: {:?}",
+        absolute_path
+    );
+
+    // Determine the file extension
+    let extension = absolute_path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("");
+
+    // Handle files based on their type
+    match extension {
+        "txt" => match fs::read_to_string(&absolute_path) {
+            Ok(content) => Ok(content),
+            Err(e) => Err(format!("Error reading text file: {}", e)),
+        },
+        "pdf" => match extract_text(&absolute_path) {
+            Ok(content) => Ok(content),
+            Err(e) => Err(format!("Error extracting text from PDF: {}", e)),
+        },
+        "md" => {
+            match fs::read_to_string(&absolute_path) {
+                Ok(content) => {
+                    // Parse Markdown and convert to plain text
+                    let parser = Parser::new_ext(&content, Options::empty());
+                    let mut rendered_text = String::new();
+                    html::push_html(&mut rendered_text, parser);
+                    Ok(rendered_text)
+                }
+                Err(e) => Err(format!("Error reading Markdown file: {}", e)),
+            }
+        }
+        _ => Err(format!("Unsupported file type: {}", extension)),
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -14,29 +63,6 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-#[tauri::command]
-async fn read_file_content(path: String) -> Result<String, String> {
-    // Convert to PathBuf and get absolute path
-    let path_buf = PathBuf::from(&path);
-    let absolute_path = match path_buf.canonicalize() {
-        Ok(abs_path) => abs_path,
-        Err(e) => return Err(format!("Failed to get absolute path: {}", e)),
-    };
-
-    println!(
-        "Attempting to read file at absolute path: {:?}",
-        absolute_path
-    );
-
-    match fs::read_to_string(absolute_path) {
-        Ok(content) => Ok(content),
-        Err(e) => {
-            println!("Error reading file: {:?}", e);
-            Err(format!("Error reading file: {}", e))
-        }
-    }
 }
 
 #[derive(Debug, Serialize)]

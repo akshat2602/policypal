@@ -25,3 +25,5 @@ serde_json = "1"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
 tokio = { version = "1.36", features = ["fs"] }
+pulldown-cmark = "0.9"
+pdf-extract = "0.7.10"

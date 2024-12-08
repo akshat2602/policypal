@@ -1,15 +1,18 @@
-import { useState } from "react";
+"use client";
+
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { FileTree } from "./file-tree";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useState } from "react";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { EMBED_FILES } from "../utils/route";
+import { FileHandle } from "@lmstudio/sdk";
 
 interface FileNode {
     name: string;
@@ -18,11 +21,38 @@ interface FileNode {
     children?: FileNode[];
 }
 
-export function FileSelector() {
-    const [files, setFiles] = useState<FileNode[]>([]);
-    const [selectedFileContent, setSelectedFileContent] = useState<string>("");
-    const [selectedNode, setSelectedNode] = useState<FileNode | null>(null);
+interface FileSelectorProps {
+    files: FileNode[];
+    setFiles: (files: FileNode[]) => void;
+    selectedFileContent: string;
+    setSelectedFileContent: (content: string) => void;
+    selectedNode: FileNode | null;
+    setSelectedNode: (node: FileNode | null) => void;
+    setDocumentHandles: (fileHandle: FileHandle[]) => void;
+}
+
+export function FileSelector({
+    files,
+    setFiles,
+    selectedFileContent,
+    setSelectedFileContent,
+    selectedNode,
+    setSelectedNode,
+    setDocumentHandles,
+}: FileSelectorProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const extractFilePaths = (nodes: FileNode[]): string[] => {
+        let paths: string[] = [];
+        for (const node of nodes) {
+            if (node.type === "file") {
+                paths.push(node.path);
+            } else if (node.type === "directory" && node.children) {
+                paths = paths.concat(extractFilePaths(node.children));
+            }
+        }
+        return paths;
+    };
 
     const fetchDirectoryStructure = async (
         path: string
@@ -30,6 +60,10 @@ export function FileSelector() {
         const fileTree = await invoke<FileNode[]>("get_directory_structure", {
             path,
         });
+        console.log(fileTree);
+        const documentPaths = extractFilePaths(fileTree);
+        setDocumentHandles(await EMBED_FILES(documentPaths)); // Call without awaiting, runs in the background
+
         return fileTree;
     };
 
@@ -57,7 +91,6 @@ export function FileSelector() {
         <div className="space-y-4">
             <h2 className="text-lg font-semibold">Document Source</h2>
             <div className="space-y-2">
-                <Label className="text-sm">Select Directory</Label>
                 <Button onClick={handleDirectorySelect} className="w-full">
                     Select Directory
                 </Button>
