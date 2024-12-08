@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -24,12 +26,8 @@ export function FileSelector() {
     const [selectedNode, setSelectedNode] = useState<FileNode | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    const fetchDirectoryStructure = async (
-        path: string
-    ): Promise<FileNode[]> => {
-        const fileTree = await invoke<FileNode[]>("get_directory_structure", {
-            path,
-        });
+    const fetchDirectoryStructure = async (path: string): Promise<FileNode[]> => {
+        const fileTree = await invoke<FileNode[]>("get_directory_structure", { path });
         return fileTree;
     };
 
@@ -37,9 +35,7 @@ export function FileSelector() {
         try {
             const selectedDirectory = await open({ directory: true });
             if (selectedDirectory) {
-                const fileTree = await fetchDirectoryStructure(
-                    selectedDirectory as string
-                );
+                const fileTree = await fetchDirectoryStructure(selectedDirectory as string);
                 setFiles(fileTree);
             }
         } catch (error) {
