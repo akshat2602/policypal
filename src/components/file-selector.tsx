@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { FileTree } from "./file-tree";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useState } from "react";
 import {
     Dialog,
     DialogContent,
@@ -20,10 +20,23 @@ interface FileNode {
     children?: FileNode[];
 }
 
-export function FileSelector() {
-    const [files, setFiles] = useState<FileNode[]>([]);
-    const [selectedFileContent, setSelectedFileContent] = useState<string>("");
-    const [selectedNode, setSelectedNode] = useState<FileNode | null>(null);
+interface FileSelectorProps {
+    files: FileNode[];
+    setFiles: (files: FileNode[]) => void;
+    selectedFileContent: string;
+    setSelectedFileContent: (content: string) => void;
+    selectedNode: FileNode | null;
+    setSelectedNode: (node: FileNode | null) => void;
+}
+
+export function FileSelector({
+    files,
+    setFiles,
+    selectedFileContent,
+    setSelectedFileContent,
+    selectedNode,
+    setSelectedNode,
+}: FileSelectorProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const fetchDirectoryStructure = async (path: string): Promise<FileNode[]> => {
@@ -53,7 +66,6 @@ export function FileSelector() {
         <div className="space-y-4">
             <h2 className="text-lg font-semibold">Document Source</h2>
             <div className="space-y-2">
-                <Label className="text-sm">Select Directory</Label>
                 <Button onClick={handleDirectorySelect} className="w-full">
                     Select Directory
                 </Button>
