@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { POST } from "../utils/route"; // Adjust the import path
+import { POST } from "../utils/route";
 import { FileHandle } from "@lmstudio/sdk";
+import MarkdownContent from "@/components/ui/markdown";
 
 type Message = {
     id: number;
@@ -40,30 +41,39 @@ export function ChatInterface({ documentHandles }: ChatInterfaceProps) {
             setInput("");
             setLoading(true);
 
+            const assistantMessageId = messages.length + 2;
+            setMessages((prevMessages) => [
+                ...prevMessages,
+                { id: assistantMessageId, content: "", sender: "assistant" },
+            ]);
+
             try {
-                // Call your POST function with the user input and a dummy document path
-                const assistantResponse = await POST(input, documentHandles);
+                const responseStream = await POST(input, documentHandles);
 
-                const assistantMessage: Message = {
-                    id: messages.length + 2,
-                    content: assistantResponse,
-                    sender: "assistant",
-                };
-
-                setMessages((prevMessages) => [
-                    ...prevMessages,
-                    assistantMessage,
-                ]);
+                for await (const chunk of responseStream) {
+                    setMessages((prevMessages) =>
+                        prevMessages.map((msg) =>
+                            msg.id === assistantMessageId
+                                ? { ...msg, content: msg.content + chunk }
+                                : msg
+                        )
+                    );
+                }
             } catch (error) {
                 console.error("Error processing request:", error);
                 const errorMessage: Message = {
-                    id: messages.length + 2,
+                    id: assistantMessageId,
                     content:
                         "I'm sorry, but I encountered an error while processing your request. Please try again later.",
                     sender: "assistant",
                 };
 
-                setMessages((prevMessages) => [...prevMessages, errorMessage]);
+                setMessages((prevMessages) => [
+                    ...prevMessages.filter(
+                        (msg) => msg.id !== assistantMessageId
+                    ),
+                    errorMessage,
+                ]);
             } finally {
                 setLoading(false);
             }
@@ -109,7 +119,13 @@ export function ChatInterface({ documentHandles }: ChatInterfaceProps) {
                                             : "bg-gray-200"
                                     }`}
                                 >
-                                    {message.content}
+                                    {message.sender === "user" ? (
+                                        <div>{message.content}</div>
+                                    ) : (
+                                        <MarkdownContent
+                                            content={message.content}
+                                        />
+                                    )}
                                 </div>
                             </div>
                         </div>
