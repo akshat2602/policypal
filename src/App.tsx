@@ -11,6 +11,7 @@ import {
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { FileHandle } from "@lmstudio/sdk";
 import "./App.css";
 
 interface FileNode {
@@ -27,6 +28,7 @@ export default function Home() {
     const [files, setFiles] = useState<FileNode[]>([]);
     const [selectedFileContent, setSelectedFileContent] = useState("");
     const [selectedNode, setSelectedNode] = useState<FileNode | null>(null);
+    const [documentHandles, setDocumentHandles] = useState<FileHandle[]>([]);
 
     return (
         <div className="flex h-screen bg-gray-100">
@@ -46,6 +48,7 @@ export default function Home() {
                         setSelectedFileContent={setSelectedFileContent}
                         selectedNode={selectedNode}
                         setSelectedNode={setSelectedNode}
+                        setDocumentHandles={setDocumentHandles}
                     />
                 </CollapsibleContent>
                 <CollapsibleTrigger asChild>
@@ -66,7 +69,7 @@ export default function Home() {
                 <header className="bg-white border-b p-4 flex justify-end">
                     <ProfileMenu />
                 </header>
-                <ChatInterface />
+                <ChatInterface documentHandles={documentHandles}/>
             </main>
         </div>
     );

@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { FileTree } from "./file-tree";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -12,6 +11,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { EMBED_FILES } from "../utils/route";
+import { FileHandle } from "@lmstudio/sdk";
 
 interface FileNode {
     name: string;
@@ -27,6 +28,7 @@ interface FileSelectorProps {
     setSelectedFileContent: (content: string) => void;
     selectedNode: FileNode | null;
     setSelectedNode: (node: FileNode | null) => void;
+    setDocumentHandles: (fileHandle: FileHandle[]) => void;
 }
 
 export function FileSelector({
@@ -36,11 +38,32 @@ export function FileSelector({
     setSelectedFileContent,
     selectedNode,
     setSelectedNode,
+    setDocumentHandles,
 }: FileSelectorProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    const fetchDirectoryStructure = async (path: string): Promise<FileNode[]> => {
-        const fileTree = await invoke<FileNode[]>("get_directory_structure", { path });
+    const extractFilePaths = (nodes: FileNode[]): string[] => {
+        let paths: string[] = [];
+        for (const node of nodes) {
+            if (node.type === "file") {
+                paths.push(node.path);
+            } else if (node.type === "directory" && node.children) {
+                paths = paths.concat(extractFilePaths(node.children));
+            }
+        }
+        return paths;
+    };
+
+    const fetchDirectoryStructure = async (
+        path: string
+    ): Promise<FileNode[]> => {
+        const fileTree = await invoke<FileNode[]>("get_directory_structure", {
+            path,
+        });
+        console.log(fileTree);
+        const documentPaths = extractFilePaths(fileTree);
+        setDocumentHandles(await EMBED_FILES(documentPaths)); // Call without awaiting, runs in the background
+
         return fileTree;
     };
 
@@ -48,7 +71,9 @@ export function FileSelector({
         try {
             const selectedDirectory = await open({ directory: true });
             if (selectedDirectory) {
-                const fileTree = await fetchDirectoryStructure(selectedDirectory as string);
+                const fileTree = await fetchDirectoryStructure(
+                    selectedDirectory as string
+                );
                 setFiles(fileTree);
             }
         } catch (error) {
